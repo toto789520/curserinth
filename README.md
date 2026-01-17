@@ -8,27 +8,50 @@ bun install
 
 ## To run:
 
-Note: In order for the program to work correctly, you must first make a profile in the Modrinth launcher with the same Modloader and Minecraft version as the modpack you are trying to install. You can get this data by running the modpack version command.
-
 Warning: The program downloads all the files from the manifest to the `mods` folder, meaning some resource packs may be in the `mods` folder.
 
-### To retrieve the modpack version:
-```bash
-bun run index.ts <modpack.zip>
+### Basic Usage:
 
-# Example:
-Modpack Name: FTB OceanBlock 2
-Minecraft Version: 1.21.1
-Total Mods: 277
-Modloader: neoforge-21.1.115
+```bash
+bun run index.ts <modpack.zip> <output-directory> <loader>
 ```
 
-### To install the modpack:
-Profile is the path to the profile in the Modrinth launcher. (Ex. `C:\Users\<name>\AppData\Roaming\ModrinthApp\profiles\<profile>`)
-You can also retrieve the profile path by running the Modrinth launcher and selecting the three dots inside the profile you want to install the modpack to and click `Open folder`.
+#### Parameters:
 
-Note: Make sure that when you copy the path, it is escaped with backslashes correctly. You can make sure of this by going to the `profiles` parent folder, right clicking on the profile you want to install the modpack to, and clicking `Copy as path`. 
+- `modpack.zip` - Path to your modpack zip file
+- `output-directory` - Directory where the modpack will be extracted
+- `loader` - Which loader to use:
+  - `1` or `multimc` - Use MultiMC loader format
+  - `2` or `modrinth` - Use Modrinth launcher format
+  - `all` - Extract for both loaders
+
+### Examples:
+
+#### Using MultiMC (option 1):
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack 1
+```
+
+#### Using Modrinth (option 2):
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack 2
+```
+
+#### Using both loaders:
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack all
+```
+
+#### Alternatively, you can use loader names:
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack multimc
+bun run index.ts '.\Modpack-CureForge.zip' .\pack modrinth
+```
+
+### Help:
+
+If you run the command without the proper arguments, the program will display a help message:
 
 ```bash
-bun run index.ts <modpack.zip> <profile>
+bun run index.ts
 ```
