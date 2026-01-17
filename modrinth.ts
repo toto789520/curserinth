@@ -60,7 +60,7 @@ interface File {
 const mkdirp = (dir: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         fs.mkdir(dir, { recursive: true }, (err) => {
-            if (err && err.code !== "EEXIST") {
+            if (err) {
                 return reject(err)
             }
             resolve()
@@ -102,12 +102,12 @@ const download = async (input: string, outputDir: string) => {
 
     const downloadFile = async (file: File, location: string) => {
         try {
-            let fileDir = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}`)
-            if (!fileDir.ok) {
-                console.warn(`[SKIP] File not found (Error ${fileDir.status}) for ID: ${file.projectID}`)
+            let fileMetadataResponse = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}`)
+            if (!fileMetadataResponse.ok) {
+                console.warn(`[SKIP] File not found (Error ${fileMetadataResponse.status}) for ID: ${file.projectID}`)
                 return
             }
-            let fileJson: Response = await fileDir.json()
+            let fileJson: Response = await fileMetadataResponse.json()
             let fileName = fileJson.data.fileName
             
             const destPath = path.join(location, fileName)
