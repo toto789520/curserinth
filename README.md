@@ -1,61 +1,57 @@
+# curserinth
 
-# Curserinth (MultiMC Export)
-
-A CLI tool to convert CurseForge modpacks (`.zip`) into **MultiMC** importable instances.
-
-## Dependencies
-
-You need [Bun](https://bun.sh) to run this project.
-### Windows installation bun with winget
-```bash
-winget install Bun
-```
-
-## Installation
+## To install dependencies:
 
 ```bash
 bun install
 ```
 
-## Usage
+## To run:
 
-### 1. Check Modpack Information
+Warning: The program downloads all the files from the manifest to the `mods` folder, meaning some resource packs may be in the `mods` folder.
 
-To see details about the modpack without downloading anything:
-
-```bash
-bun run index.ts <modpack.zip>
-```
-
-### 2. Convert to MultiMC
-
-This command will download all mods, apply overrides (configs), sort shaderpacks, and generate a `.zip` file ready to be imported into MultiMC.
-
-**Syntax:**
+### Basic Usage:
 
 ```bash
-bun run index.ts <input_modpack.zip> <output_directory>
+bun run index.ts <modpack.zip> <output-directory> <loader>
 ```
 
-**Example:**
+#### Parameters:
+
+- `modpack.zip` - Path to your modpack zip file
+- `output-directory` - Directory where the modpack will be extracted
+- `loader` - Which loader to use:
+  - `1` or `multimc` - Use MultiMC loader format
+  - `2` or `modrinth` - Use Modrinth launcher format
+  - `all` - Extract for both loaders
+
+### Examples:
+
+#### Using MultiMC (option 1):
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack 1
+```
+
+#### Using Modrinth (option 2):
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack 2
+```
+
+#### Using both loaders:
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack all
+```
+
+#### Alternatively, you can use loader names:
+```bash
+bun run index.ts '.\Modpack-CureForge.zip' .\pack multimc
+bun run index.ts '.\Modpack-CureForge.zip' .\pack modrinth
+```
+
+### Help:
+
+If you run the command without the proper arguments, the program will display a help message:
 
 ```bash
-bun run index.ts "BetterMC.zip" "./build"
+bun run index.ts
 ```
-
-Once finished, you will find a file named `ModpackName-MMC-Export.zip` in the output directory.
-
-### 3. Import into MultiMC
-
-1. Open **MultiMC** (or Prism Launcher).
-2. Drag and drop the generated `.zip` file into the MultiMC window.
-3. Click **OK**.
-4. Launch the instance!
-
-## Features
-
-* **API Integration:** Downloads mod files directly from CurseForge.
-* **Safety Checks:** Skips files that have been deleted or archived on CurseForge to prevent crashes.
-* **Smart Sorting:** Automatically detects **Shaderpacks** (.zip shaders) and moves them to the `shaderpacks` folder instead of `mods`.
-* **Metadata Generation:** Automatically creates `mmc-pack.json` and `instance.cfg` with the correct Modloader (Forge/Fabric/NeoForge/Quilt) and Minecraft version.
-* **Overrides:** Handles config files and scripts correctly.
