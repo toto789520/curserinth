@@ -1,34 +1,61 @@
-# curserinth
 
-## To install dependencies:
+# Curserinth (MultiMC Export)
+
+A CLI tool to convert CurseForge modpacks (`.zip`) into **MultiMC** importable instances.
+
+## Dependencies
+
+You need [Bun](https://bun.sh) to run this project.
+### Windows installation bun with winget
+```bash
+winget install Bun
+```
+
+## Installation
 
 ```bash
 bun install
 ```
 
-## To run:
+## Usage
 
-Note: In order for the program to work correctly, you must first make a profile in the Modrinth launcher with the same Modloader and Minecraft version as the modpack you are trying to install. You can get this data by running the modpack version command.
+### 1. Check Modpack Information
 
-Warning: The program downloads all the files from the manifest to the `mods` folder, meaning some resource packs may be in the `mods` folder.
+To see details about the modpack without downloading anything:
 
-### To retrieve the modpack version:
 ```bash
 bun run index.ts <modpack.zip>
-
-# Example:
-Modpack Name: FTB OceanBlock 2
-Minecraft Version: 1.21.1
-Total Mods: 277
-Modloader: neoforge-21.1.115
 ```
 
-### To install the modpack:
-Profile is the path to the profile in the Modrinth launcher. (Ex. `C:\Users\<name>\AppData\Roaming\ModrinthApp\profiles\<profile>`)
-You can also retrieve the profile path by running the Modrinth launcher and selecting the three dots inside the profile you want to install the modpack to and click `Open folder`.
+### 2. Convert to MultiMC
 
-Note: Make sure that when you copy the path, it is escaped with backslashes correctly. You can make sure of this by going to the `profiles` parent folder, right clicking on the profile you want to install the modpack to, and clicking `Copy as path`. 
+This command will download all mods, apply overrides (configs), sort shaderpacks, and generate a `.zip` file ready to be imported into MultiMC.
+
+**Syntax:**
 
 ```bash
-bun run index.ts <modpack.zip> <profile>
+bun run index.ts <input_modpack.zip> <output_directory>
 ```
+
+**Example:**
+
+```bash
+bun run index.ts "BetterMC.zip" "./build"
+```
+
+Once finished, you will find a file named `ModpackName-MMC-Export.zip` in the output directory.
+
+### 3. Import into MultiMC
+
+1. Open **MultiMC** (or Prism Launcher).
+2. Drag and drop the generated `.zip` file into the MultiMC window.
+3. Click **OK**.
+4. Launch the instance!
+
+## Features
+
+* **API Integration:** Downloads mod files directly from CurseForge.
+* **Safety Checks:** Skips files that have been deleted or archived on CurseForge to prevent crashes.
+* **Smart Sorting:** Automatically detects **Shaderpacks** (.zip shaders) and moves them to the `shaderpacks` folder instead of `mods`.
+* **Metadata Generation:** Automatically creates `mmc-pack.json` and `instance.cfg` with the correct Modloader (Forge/Fabric/NeoForge/Quilt) and Minecraft version.
+* **Overrides:** Handles config files and scripts correctly.
