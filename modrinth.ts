@@ -58,56 +58,29 @@ interface File {
 }
 
 const mkdirp = (dir: string): Promise<void> => {
-    return new Promise((resolve) => {
-        fs.mkdir(dir, { recursive: true }, () => resolve())
-    })
-}
-
-const [input, outputDir] = process.argv.slice(2)
-
-const version = () => {
-    yauzl.open(input, { lazyEntries: true }, async (err, zipfile: ZipFile) => {
-        if (err || !zipfile) throw err
-
-        zipfile.readEntry()
-        zipfile.on("entry", async (entry: Entry) => {
-            if (entry.fileName === "manifest.json") {
-                zipfile.openReadStream(entry, (err, readStream) => {
-                    if (err || !readStream) throw err
-
-                    let rawData = ''
-                    readStream.on('data', (chunk) => {
-                        rawData += chunk
-                    })
-
-                    readStream.on('end', () => {
-                        const manifest: Manifest = JSON.parse(rawData)
-                        console.log("Modpack Name:", manifest.name)
-                        console.log("Minecraft Version:", manifest.minecraft.version)
-                        console.log("Total Mods:", manifest.files.length)
-                        console.log("Modloader:", manifest.minecraft.modLoaders[0].id)
-
-                        zipfile.close()
-                    })
-                })
-            } else {
-                zipfile.readEntry()
+    return new Promise((resolve, reject) => {
+        fs.mkdir(dir, { recursive: true }, (err) => {
+            if (err) {
+                return reject(err)
             }
+            resolve()
         })
     })
 }
 
-const download = async () => {
-    // Temp Directory
-    const tempDir = `${outputDir}/.otter`
+const download = async (input: string, outputDir: string) => {
+    // Temp Directory for extraction
+    const tempDir = path.join(outputDir, ".otter")
     await mkdirp(tempDir)
+
+    console.log("Extracting modpack...")
 
     yauzl.open(input, { lazyEntries: true }, async (err, zipfile: ZipFile) => {
         if (err || !zipfile) throw err
 
         zipfile.readEntry()
         zipfile.on("entry", async (entry: Entry) => {
-            const fullPath = `${tempDir}/${entry.fileName}`
+            const fullPath = path.join(tempDir, entry.fileName)
 
             if (entry.fileName.endsWith("/")) {
                 await mkdirp(fullPath)
@@ -128,34 +101,69 @@ const download = async () => {
     })
 
     const downloadFile = async (file: File, location: string) => {
-        let fileDir = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}`)
-        let fileJson: Response = await fileDir.json()
-        let fileName = fileJson.data.fileName
-        let fileWeb = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}/download`)
-        Bun.write(`${location}/${fileName}`, await fileWeb.blob())
+        try {
+            let fileMetadataResponse = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}`)
+            if (!fileMetadataResponse.ok) {
+                console.warn(`[SKIP] File not found (Error ${fileMetadataResponse.status}) for ID: ${file.projectID}`)
+                return
+            }
+            let fileJson: Response = await fileMetadataResponse.json()
+            let fileName = fileJson.data.fileName
+            
+            const destPath = path.join(location, fileName)
+            if (fs.existsSync(destPath)) return
+
+            let fileWeb = await fetch(`https://www.curseforge.com/api/v1/mods/${file.projectID}/files/${file.fileID}/download`)
+            if (!fileWeb.ok) {
+                console.warn(`[SKIP] Download failed (Error ${fileWeb.status}) for: ${fileName}`)
+                return
+            }
+            await Bun.write(destPath, await fileWeb.blob())
+        } catch (e) {
+            console.error(`Failed to download file for project ${file.projectID}:`, e)
+        }
     }
 
     const downloadModpack = async () => {
-        const manifest: Manifest = await Bun.file(`${tempDir}/manifest.json`).json()
-        const downloadPromises = manifest.files.map(file => downloadFile(file, `${outputDir}/mods`))
-        await Promise.all(downloadPromises)
+        const manifestPath = path.join(tempDir, "manifest.json")
+        if (!fs.existsSync(manifestPath)) {
+            console.error("manifest.json not found!")
+            return
+        }
+
+        const manifest: Manifest = await Bun.file(manifestPath).json()
+        const modsDir = path.join(outputDir, "mods")
+        await mkdirp(modsDir)
+
+        console.log(`Downloading ${manifest.files.length} mods...`)
+        const batchSize = 10
+        for (let i = 0; i < manifest.files.length; i += batchSize) {
+            const batch = manifest.files.slice(i, i + batchSize)
+            await Promise.all(batch.map(file => downloadFile(file, modsDir)))
+        }
+
+        // Copy overrides
         if (manifest.overrides) {
-            const overridesPath = `${tempDir}/${manifest.overrides}`
+            const overridesPath = path.join(tempDir, manifest.overrides)
             if (fs.existsSync(overridesPath)) {
+                console.log("Copying override files...")
                 fs.cpSync(overridesPath, outputDir, { recursive: true })
             }
         }
+
         cleanup()
-        console.log("Done!")
+        console.log("Done! Modpack extracted to:", outputDir)
     }
 
     const cleanup = () => {
-        fs.rmdirSync(tempDir, { recursive: true })
+        try {
+            fs.rmSync(tempDir, { recursive: true, force: true })
+        } catch (e) {
+            // Ignore cleanup errors - temp directory may have already been removed or locked
+        }
     }
 }
 
 export const run = async (inputFile: string, outputDirectory: string) => {
-    const input = inputFile
-    const outputDir = outputDirectory
-    await download()
+    await download(inputFile, outputDirectory)
 }

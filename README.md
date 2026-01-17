@@ -29,23 +29,23 @@ bun run index.ts <modpack.zip> <output-directory> <loader>
 
 #### Using MultiMC (option 1):
 ```bash
-bun run index.ts '.\Modpack-CureForge.zip' .\pack 1
+bun run index.ts '.\Modpack-CurseForge.zip' .\pack 1
 ```
 
 #### Using Modrinth (option 2):
 ```bash
-bun run index.ts '.\Modpack-CureForge.zip' .\pack 2
+bun run index.ts '.\Modpack-CurseForge.zip' .\pack 2
 ```
 
 #### Using both loaders:
 ```bash
-bun run index.ts '.\Modpack-CureForge.zip' .\pack all
+bun run index.ts '.\Modpack-CurseForge.zip' .\pack all
 ```
 
 #### Alternatively, you can use loader names:
 ```bash
-bun run index.ts '.\Modpack-CureForge.zip' .\pack multimc
-bun run index.ts '.\Modpack-CureForge.zip' .\pack modrinth
+bun run index.ts '.\Modpack-CurseForge.zip' .\pack multimc
+bun run index.ts '.\Modpack-CurseForge.zip' .\pack modrinth
 ```
 
 ### Help:

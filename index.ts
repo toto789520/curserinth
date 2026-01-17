@@ -1,10 +1,10 @@
-import * as modrinth from "../modrinth"
-import * as multimc from "../multimc"
+import * as modrinth from "./modrinth"
+import * as multimc from "./multimc"
 
-const [input, outputDir, loaderParam] = process.argv.slice(2)
+const [input, outputDir, loaderArg] = process.argv.slice(2)
 
 const showHelp = () => {
-    console.error(`
+    console.log(`
 Usage: bun run index.ts <input.zip> <outputDir> [loader]
 
 Arguments:
@@ -25,14 +25,14 @@ Examples:
     process.exit(1)
 }
 
-if (!input || !outputDir || !loaderParam) {
+if (!input || !outputDir || !loaderArg) {
     showHelp()
 }
 
-const loader = loaderParam.toLowerCase()
+const loader = loaderArg.toLowerCase()
 
 if (!['1', '2', 'multimc', 'modrinth', 'all'].includes(loader)) {
-    console.error(`Error: Invalid loader type "${loaderParam}"`)
+    console.error(`Error: Invalid loader type "${loaderArg}". Valid loader types are: 1, multimc, 2, modrinth, all. See usage below:`)
     showHelp()
 }
 
