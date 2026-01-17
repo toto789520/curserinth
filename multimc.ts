@@ -58,46 +58,17 @@ interface File {
 }
 
 const mkdirp = (dir: string): Promise<void> => {
-    return new Promise((resolve) => {
-        fs.mkdir(dir, { recursive: true }, () => resolve())
-    })
-}
-
-const [input, outputDir] = process.argv.slice(2)
-
-const version = () => {
-    yauzl.open(input, { lazyEntries: true }, async (err, zipfile: ZipFile) => {
-        if (err || !zipfile) throw err
-
-        zipfile.readEntry()
-        zipfile.on("entry", async (entry: Entry) => {
-            if (entry.fileName === "manifest.json") {
-                zipfile.openReadStream(entry, (err, readStream) => {
-                    if (err || !readStream) throw err
-
-                    let rawData = ''
-                    readStream.on('data', (chunk) => {
-                        rawData += chunk
-                    })
-
-                    readStream.on('end', () => {
-                        const manifest: Manifest = JSON.parse(rawData)
-                        console.log("Modpack Name:", manifest.name)
-                        console.log("Minecraft Version:", manifest.minecraft.version)
-                        console.log("Total Mods:", manifest.files.length)
-                        console.log("Modloader:", manifest.minecraft.modLoaders[0].id)
-
-                        zipfile.close()
-                    })
-                })
-            } else {
-                zipfile.readEntry()
+    return new Promise((resolve, reject) => {
+        fs.mkdir(dir, { recursive: true }, (err) => {
+            if (err && err.code !== "EEXIST") {
+                return reject(err)
             }
+            resolve()
         })
     })
 }
 
-const download = async () => {
+const download = async (input: string, outputDir: string) => {
     // Temp Directory
     const tempDir = `${outputDir}/.otter`
     await mkdirp(tempDir)
@@ -155,7 +126,5 @@ const download = async () => {
 }
 
 export const run = async (inputFile: string, outputDirectory: string) => {
-    const input = inputFile
-    const outputDir = outputDirectory
-    await download()
+    await download(inputFile, outputDirectory)
 }
