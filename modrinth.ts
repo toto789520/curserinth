@@ -159,7 +159,7 @@ const download = async (input: string, outputDir: string) => {
         try {
             fs.rmSync(tempDir, { recursive: true, force: true })
         } catch (e) {
-            // Ignore cleanup errors
+            // Ignore cleanup errors - temp directory may have already been removed or locked
         }
     }
 }

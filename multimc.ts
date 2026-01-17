@@ -177,7 +177,7 @@ name=${name}
         const manifest: Manifest = await Bun.file(manifestPath).json()
         
         // Create MultiMC-style directory structure
-        const safeName = manifest.name.replace(/[^a-z0-9_-]/gi, '')
+        const safeName = manifest.name.replace(/[^a-z0-9_-]/gi, '_')
         const instanceRoot = path.join(outputDir, safeName)
         const minecraftPath = path.join(instanceRoot, ".minecraft")
         const modsPath = path.join(minecraftPath, "mods")
@@ -215,7 +215,7 @@ name=${name}
         try {
             fs.rmSync(tempDir, { recursive: true, force: true })
         } catch (e) {
-            // Ignore cleanup errors
+            // Ignore cleanup errors - temp directory may have already been removed or locked
         }
     }
 }
