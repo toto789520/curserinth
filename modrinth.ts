@@ -75,8 +75,20 @@ const download = async (input: string, outputDir: string) => {
 
     console.log("Extracting modpack...")
 
+    const cleanup = () => {
+        try {
+            fs.rmSync(tempDir, { recursive: true, force: true })
+        } catch (e) {
+            // Ignore cleanup errors - temp directory may have already been removed or locked
+        }
+    }
+
     yauzl.open(input, { lazyEntries: true }, async (err, zipfile: ZipFile) => {
-        if (err || !zipfile) throw err
+        if (err || !zipfile) {
+            console.error("Failed to open modpack file:", err)
+            cleanup()
+            throw err
+        }
 
         zipfile.readEntry()
         zipfile.on("entry", async (entry: Entry) => {
@@ -88,10 +100,27 @@ const download = async (input: string, outputDir: string) => {
             } else {
                 await mkdirp(path.dirname(fullPath))
                 zipfile.openReadStream(entry, (err, readStream) => {
-                    if (err || !readStream) throw err
+                    if (err || !readStream) {
+                        console.error("Failed to open read stream for entry:", entry.fileName, err)
+                        // Skip this entry and continue with the next one
+                        zipfile.readEntry()
+                        return
+                    }
                     const writeStream = fs.createWriteStream(fullPath)
+                    readStream.on("error", (streamErr) => {
+                        console.error("Error while reading from zip entry:", entry.fileName, streamErr)
+                        writeStream.destroy()
+                        zipfile.readEntry()
+                    })
+                    writeStream.on("error", (streamErr) => {
+                        console.error("Error while writing extracted file:", fullPath, streamErr)
+                        readStream.destroy()
+                        zipfile.readEntry()
+                    })
+                    writeStream.on("close", () => {
+                        zipfile.readEntry()
+                    })
                     readStream.pipe(writeStream)
-                    writeStream.on("close", () => zipfile.readEntry())
                 })
             }
         })
@@ -128,7 +157,8 @@ const download = async (input: string, outputDir: string) => {
         const manifestPath = path.join(tempDir, "manifest.json")
         if (!fs.existsSync(manifestPath)) {
             console.error("manifest.json not found!")
-            return
+            cleanup()
+            throw new Error(`manifest.json not found at expected path: ${manifestPath}`)
         }
 
         const manifest: Manifest = await Bun.file(manifestPath).json()
@@ -153,14 +183,6 @@ const download = async (input: string, outputDir: string) => {
 
         cleanup()
         console.log("Done! Modpack extracted to:", outputDir)
-    }
-
-    const cleanup = () => {
-        try {
-            fs.rmSync(tempDir, { recursive: true, force: true })
-        } catch (e) {
-            // Ignore cleanup errors - temp directory may have already been removed or locked
-        }
     }
 }
 

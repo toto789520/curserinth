@@ -1,6 +1,7 @@
 import yauzl, { Entry, ZipFile } from "yauzl"
 import * as fs from "fs"
 import * as path from "path"
+import * as crypto from "crypto"
 
 interface Response {
     data: ModFile
@@ -75,8 +76,20 @@ const download = async (input: string, outputDir: string) => {
 
     console.log("Extracting modpack...")
 
+    const cleanup = () => {
+        try {
+            fs.rmSync(tempDir, { recursive: true, force: true })
+        } catch (e) {
+            // Ignore cleanup errors - temp directory may have already been removed or locked
+        }
+    }
+
     yauzl.open(input, { lazyEntries: true }, async (err, zipfile: ZipFile) => {
-        if (err || !zipfile) throw err
+        if (err || !zipfile) {
+            console.error("Failed to open modpack file:", err)
+            cleanup()
+            throw err
+        }
 
         zipfile.readEntry()
         zipfile.on("entry", async (entry: Entry) => {
@@ -88,10 +101,34 @@ const download = async (input: string, outputDir: string) => {
             } else {
                 await mkdirp(path.dirname(fullPath))
                 zipfile.openReadStream(entry, (err, readStream) => {
-                    if (err || !readStream) throw err
+                    if (err || !readStream) {
+                        console.error("Failed to open read stream for entry:", entry.fileName, err)
+                        // Attempt to continue with the next entry instead of throwing inside a callback
+                        zipfile.readEntry()
+                        return
+                    }
                     const writeStream = fs.createWriteStream(fullPath)
+                    const handleStreamError = (streamErr: unknown) => {
+                        console.error("Stream error while extracting entry:", entry.fileName, streamErr)
+                        try {
+                            readStream.destroy()
+                        } catch {
+                            // ignore secondary errors during cleanup
+                        }
+                        try {
+                            writeStream.close()
+                        } catch {
+                            // ignore secondary errors during cleanup
+                        }
+                        // Move on to the next entry even if this one failed
+                        zipfile.readEntry()
+                    }
+                    readStream.on("error", handleStreamError)
+                    writeStream.on("error", handleStreamError)
+                    writeStream.on("close", () => {
+                        zipfile.readEntry()
+                    })
                     readStream.pipe(writeStream)
-                    writeStream.on("close", () => zipfile.readEntry())
                 })
             }
         })
@@ -176,13 +213,16 @@ name=${name}
         const manifestPath = path.join(tempDir, "manifest.json")
         if (!fs.existsSync(manifestPath)) {
             console.error("manifest.json not found!")
-            return
+            cleanup()
+            throw new Error(`manifest.json not found at expected path: ${manifestPath}`)
         }
 
         const manifest: Manifest = await Bun.file(manifestPath).json()
         
         // Create MultiMC-style directory structure
-        const safeName = manifest.name.replace(/[^a-z0-9_-]/gi, '_')
+        // Use hash of manifest name to ensure uniqueness if multiple packs have similar names
+        const hash = crypto.createHash('md5').update(manifest.name).digest('hex').substring(0, 8)
+        const safeName = manifest.name.replace(/[^a-z0-9_-]/gi, '_').substring(0, 32) + '_' + hash
         const instanceRoot = path.join(outputDir, safeName)
         const minecraftPath = path.join(instanceRoot, ".minecraft")
         const modsPath = path.join(minecraftPath, "mods")
@@ -214,14 +254,6 @@ name=${name}
 
         cleanup()
         console.log(`Done! MultiMC instance created at: ${instanceRoot}`)
-    }
-
-    const cleanup = () => {
-        try {
-            fs.rmSync(tempDir, { recursive: true, force: true })
-        } catch (e) {
-            // Ignore cleanup errors - temp directory may have already been removed or locked
-        }
     }
 }
 

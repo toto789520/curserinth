@@ -11,9 +11,9 @@ Arguments:
   input.zip      Path to the modpack zip file
   outputDir      Output directory for the extracted modpack
   loader         Loader type (optional):
-                 1, multimc   - Use MultiMC loader
-                 2, modrinth  - Use Modrinth loader
-                 all          - Use both loaders
+                 1, multimc - Use MultiMC loader
+                 2, modrinth - Use Modrinth loader
+                 all - Use both loaders
 
 Examples:
   bun run index.ts './modpack.zip' './output' 1
@@ -29,10 +29,10 @@ if (!input || !outputDir || !loaderArg) {
     showHelp()
 }
 
-const loader = loaderArg.toLowerCase()
+const loader = loaderArg?.toLowerCase()
 
-if (!['1', '2', 'multimc', 'modrinth', 'all'].includes(loader)) {
-    console.error(`Error: Invalid loader type "${loaderArg}". Valid loader types are: 1, multimc, 2, modrinth, all. See usage below:`)
+if (!loader || !['1', '2', 'multimc', 'modrinth', 'all'].includes(loader)) {
+    console.error(`Error: Invalid or missing loader type. Valid loader types are: 1, multimc, 2, modrinth, all. See usage below:`)
     showHelp()
 }
 
